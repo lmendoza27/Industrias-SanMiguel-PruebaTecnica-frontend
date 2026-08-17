@@ -18,15 +18,17 @@ Aplicación móvil híbrida desarrollada con **Angular**, **Ionic** y **Capacito
 
 El proyecto está organizado aislando el dominio de los detalles técnicos de infraestructura y persistencia:
 
+```plaintext
 src/app/tasks/
-├── domain/ # 🟢 NÚCLEO (Interfaces y entidades de negocio)
-│ └── task.model.ts
+├── domain/                      # 🟢 NÚCLEO (Interfaces y entidades)
+│   └── task.model.ts
 │
-└── data-access/ # 🔵 ADAPTADORES (Servicios e Infraestructura)
-├── auth.service.ts # Manejo de token JWT en LocalStorage
-├── task.service.ts # Cliente HTTP para la API en Laravel
-├── local-db.service.ts # Adaptador SQLite Local
-└── sync.service.ts # Orquestador de sincronización Offline-First
+└── data-access/                 # 🔵 ADAPTADORES (Servicios e Infraestructura)
+    ├── auth.service.ts          # Manejo de token JWT en LocalStorage
+    ├── task.service.ts          # Cliente HTTP para la API en Laravel
+    ├── local-db.service.ts      # Adaptador SQLite Local
+    └── sync.service.ts          # Orquestador de sincronización Offline-First
+```
 
 ---
 
