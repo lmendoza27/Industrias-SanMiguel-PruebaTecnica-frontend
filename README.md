@@ -1,59 +1,54 @@
-# TaskFrontend
+# 📱 Task Manager Mobile App - Frontend (Angular + Ionic / Capacitor)
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.4.
+Aplicación móvil híbrida desarrollada con **Angular**, **Ionic** y **Capacitor**, construida bajo **Arquitectura Hexagonal** y soporte **Offline-First** utilizando SQLite local y sincronización automática en segundo plano con el backend en Laravel.
 
-## Development server
+---
 
-To start a local development server, run:
+## 🛠️ Tecnologías y Librerías
+
+- **Framework:** Angular 17+ (Componentes Standalone)
+- **Entorno Móvil:** Capacitor 5+/6+ (Ionic Framework)
+- **Base de Datos Local:** Capacitor SQLite (para almacenamiento local offline)
+- **Peticiones HTTP:** Angular HttpClient con Interceptores
+- **Estilos:** CSS3 / Componentes UI de Ionic
+
+---
+
+## 🏗️ Arquitectura del Proyecto (Arquitectura Hexagonal)
+
+El proyecto está organizado aislando el dominio de los detalles técnicos de infraestructura y persistencia:
+
+src/app/tasks/
+├── domain/ # 🟢 NÚCLEO (Interfaces y entidades de negocio)
+│ └── task.model.ts
+│
+└── data-access/ # 🔵 ADAPTADORES (Servicios e Infraestructura)
+├── auth.service.ts # Manejo de token JWT en LocalStorage
+├── task.service.ts # Cliente HTTP para la API en Laravel
+├── local-db.service.ts # Adaptador SQLite Local
+└── sync.service.ts # Orquestador de sincronización Offline-First
+
+---
+
+## 🚀 Funcionalidades Clave
+
+- 📱 **Híbrido Móvil Nativo:** Compilado a APK funcional para Android.
+- 🌐 **Soporte Offline-First (Store & Forward):**
+  - Permite crear y consultar tareas sin conexión a internet.
+  - Genera UUIDs temporales para los registros guardados en SQLite de forma offline.
+- 🔄 **Sincronización Automática Evitando Duplicados:**
+  - Escuchador en tiempo real de cambios en la interfaz de red (`NetworkListener`).
+  - Patrón de bloqueo mediante _Mutex / Flag (`isSyncing`)_ en `SyncService` para evitar condiciones de carrera (Race Conditions) al reconectarse a internet.
+- 🔒 **Seguridad & JWT:** Adjunto automático de cabeceras `Authorization: Bearer <token>` en las peticiones a endpoints protegidos.
+
+---
+
+## 🛠️ Configuración y Ejecución Local
+
+### 1. Clonar e instalar dependencias
 
 ```bash
-ng serve
+git clone [https://github.com/TU_USUARIO/task-manager-frontend.git](https://github.com/TU_USUARIO/task-manager-frontend.git)
+cd task-manager-frontend
+npm install
 ```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
