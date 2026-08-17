@@ -44,22 +44,26 @@ export class LocalDbService {
     return (res.values || []) as Task[];
   }
 
-  async saveLocalTask(task: Task, isSynced: boolean = false): Promise<void> {
-    if (!Capacitor.isNativePlatform()) return;
-    if (!this.isReady) await this.initializePlugin();
-    const syncedValue = isSynced ? 1 : 0;
-    const query = `
-      INSERT OR REPLACE INTO local_tasks (id, title, description, status, synced)
-      VALUES (?, ?, ?, ?, ?);
-    `;
-    await this.db.run(query, [
-      task.id || crypto.randomUUID(), 
-      task.title, 
-      task.description || '', 
-      task.status, 
-      syncedValue
-    ]);
-  }
+async saveLocalTask(task: Task, isSynced: boolean = false): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
+  if (!this.isReady) await this.initializePlugin();
+  const syncedValue = isSynced ? 1 : 0;
+  const query = `
+    INSERT OR REPLACE INTO local_tasks (id, title, description, status, synced)
+    VALUES (?, ?, ?, ?, ?);
+  `;
+  
+  // Generador de ID seguro para HTTP / Web sin HTTPS
+  const generatedId = task.id || (Date.now().toString(36) + Math.random().toString(36).substring(2));
+
+  await this.db.run(query, [
+    generatedId, 
+    task.title, 
+    task.description || '', 
+    task.status, 
+    syncedValue
+  ]);
+}
 
   async getUnsyncedTasks(): Promise<Task[]> {
     if (!Capacitor.isNativePlatform()) return [];

@@ -37,6 +37,10 @@ export class TaskListComponent implements OnInit {
     this.loadTasks();
   }
 
+  private generateUUID(): string {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2);
+}
+
   loadTasks(): void {
     this.isLoading = true;
     this.taskService.getTasks().subscribe({
@@ -57,31 +61,30 @@ export class TaskListComponent implements OnInit {
     });
   }
 
-  async createTask(): Promise<void> {
-    if (!this.newTask.title.trim()) return;
+async createTask(): Promise<void> {
+  if (!this.newTask.title.trim()) return;
 
-    const tempTask: Task = {
-      id: crypto.randomUUID(),
-      title: this.newTask.title,
-      description: this.newTask.description,
-      status: this.newTask.status
-    };
+  const tempTask: Task = {
+    id: this.generateUUID(), // <-- Cambiado aquí
+    title: this.newTask.title,
+    description: this.newTask.description,
+    status: this.newTask.status
+  };
 
-    this.taskService.createTask(this.newTask).subscribe({
-      next: async (res) => {
-        this.tasks.push(res.task);
-        await this.localDb.saveLocalTask(res.task, true);
-        this.resetForm();
-      },
-      error: async () => {
-        // Si falla por falta de red, guardar localmente para sincronizar luego
-        this.tasks.push(tempTask);
-        await this.localDb.saveLocalTask(tempTask, false);
-        this.errorMessage = 'Tarea guardada en modo offline. Se sincronizará al conectar a internet.';
-        this.resetForm();
-      }
-    });
-  }
+  this.taskService.createTask(this.newTask).subscribe({
+    next: async (res) => {
+      this.tasks.push(res.task);
+      await this.localDb.saveLocalTask(res.task, true);
+      this.resetForm();
+    },
+    error: async () => {
+      this.tasks.push(tempTask);
+      await this.localDb.saveLocalTask(tempTask, false);
+      this.errorMessage = 'Tarea guardada en modo offline. Se sincronizará al conectar a internet.';
+      this.resetForm();
+    }
+  });
+}
 
   private resetForm(): void {
     this.newTask = { title: '', description: '', status: 'pending' };
