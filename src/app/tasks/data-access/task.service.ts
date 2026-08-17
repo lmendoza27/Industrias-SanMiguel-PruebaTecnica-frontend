@@ -1,48 +1,43 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Task } from '../domain/task.model';
+import { AuthService } from '../../auth/data-access/auth.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class TaskService {
   private http: HttpClient = inject(HttpClient);
+  private authService: AuthService = inject(AuthService);
   private apiUrl = `${environment.apiUrl}/tasks`;
 
-  /**
-   * Obtiene todas las tareas del usuario autenticado
-   */
+  private getHeaders(): HttpHeaders {
+    const token = this.authService.getToken();
+    return new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+  }
+
   getTasks(): Observable<Task[]> {
-    return this.http.get<Task[]>(this.apiUrl);
+    return this.http.get<Task[]>(this.apiUrl, { headers: this.getHeaders() });
   }
 
-  /**
-   * Obtiene una tarea específica por su UUID
-   */
   getTaskById(id: string): Observable<Task> {
-    return this.http.get<Task>(`${this.apiUrl}/${id}`);
+    return this.http.get<Task>(`${this.apiUrl}/${id}`, { headers: this.getHeaders() });
   }
 
-  /**
-   * Crea una nueva tarea
-   */
   createTask(task: Omit<Task, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Observable<{ message: string; task: Task }> {
-    return this.http.post<{ message: string; task: Task }>(this.apiUrl, task);
+    return this.http.post<{ message: string; task: Task }>(this.apiUrl, task, { headers: this.getHeaders() });
   }
 
-  /**
-   * Actualiza el estado, título o descripción de una tarea existente
-   */
   updateTask(id: string, taskData: Partial<Task>): Observable<{ message: string }> {
-    return this.http.put<{ message: string }>(`${this.apiUrl}/${id}`, taskData);
+    return this.http.put<{ message: string }>(`${this.apiUrl}/${id}`, taskData, { headers: this.getHeaders() });
   }
 
-  /**
-   * Elimina una tarea por su UUID
-   */
   deleteTask(id: string): Observable<{ message: string }> {
-    return this.http.delete<{ message: string }>(`${this.apiUrl}/${id}`);
+    return this.http.delete<{ message: string }>(`${this.apiUrl}/${id}`, { headers: this.getHeaders() });
   }
 }

@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { AuthResponse, User } from '../../tasks/domain/task.model';
+import { AuthResponse } from '../../tasks/domain/task.model';
 
 @Injectable({
   providedIn: 'root'
@@ -13,13 +13,22 @@ export class AuthService {
 
   register(credentials: { name: string; email: string; password: string }): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/register`, credentials).pipe(
-      tap(response => this.saveToken(response.token))
+      tap(response => {
+        const token = response.token || (response as any).access_token;
+        if (token) this.saveToken(token);
+      })
     );
   }
 
-  login(credentials: { email: string; password: string }): Observable<{ access_token: string }> {
-    return this.http.post<{ access_token: string }>(`${this.apiUrl}/login`, credentials).pipe(
-      tap(response => this.saveToken(response.access_token))
+  login(credentials: { email: string; password: string }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/login`, credentials).pipe(
+      tap(response => {
+        // Soporta tanto si Laravel responde { token: '...' } como { access_token: '...' }
+        const token = response.token || response.access_token;
+        if (token) {
+          this.saveToken(token);
+        }
+      })
     );
   }
 
@@ -32,7 +41,11 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem('jwt_token');
+    const token = localStorage.getItem('jwt_token');
+    if (!token || token === 'undefined' || token === 'null') {
+      return null;
+    }
+    return token;
   }
 
   isLoggedIn(): boolean {

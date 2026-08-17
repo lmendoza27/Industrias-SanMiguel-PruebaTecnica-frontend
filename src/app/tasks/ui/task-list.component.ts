@@ -25,6 +25,8 @@ export class TaskListComponent implements OnInit {
   tasks: Task[] = [];
   isLoading: boolean = false;
   errorMessage: string = '';
+  toastMessage: string = '';
+toastType: 'success' | 'warning' | 'error' | 'info' = 'info';
 
   newTask: { title: string; description: string; status: 'pending' | 'in_progress' | 'completed' } = {
     title: '',
@@ -32,10 +34,35 @@ export class TaskListComponent implements OnInit {
     status: 'pending'
   };
 
-  ngOnInit(): void {
-    this.syncService.initNetworkListener();
-    this.loadTasks();
+  showToast(message: string, type: 'success' | 'warning' | 'error' | 'info' = 'info'): void {
+  this.toastMessage = message;
+  this.toastType = type;
+  setTimeout(() => {
+    this.toastMessage = '';
+  }, 4000); // Se oculta a los 4 segundos
+}
+
+async ngOnInit(): Promise<void> {
+  // 1. Registrar escuchador de cambios de red
+  this.syncService.initNetworkListener(async (syncedCount: number) => {
+    if (syncedCount > 0) {
+      this.showToast(`🔄 Sincronizada(s) ${syncedCount} tarea(s)`, 'success');
+      this.loadTasks();
+    }
+  });
+
+  // 2. Si hay internet al iniciar la pantalla, sincronizar primero
+  if (navigator.onLine) {
+    await this.syncService.syncPendingTasks((syncedCount: number) => {
+      if (syncedCount > 0) {
+        this.showToast(`🔄 Se enviaron ${syncedCount} tarea(s) pendientes a Laravel`, 'success');
+      }
+    });
   }
+
+  // 3. Cargar la lista unificada
+  this.loadTasks();
+}
 
   private generateUUID(): string {
   return Date.now().toString(36) + Math.random().toString(36).substring(2);
@@ -65,7 +92,7 @@ async createTask(): Promise<void> {
   if (!this.newTask.title.trim()) return;
 
   const tempTask: Task = {
-    id: this.generateUUID(), // <-- Cambiado aquí
+    id: this.generateUUID(),
     title: this.newTask.title,
     description: this.newTask.description,
     status: this.newTask.status
@@ -75,12 +102,13 @@ async createTask(): Promise<void> {
     next: async (res) => {
       this.tasks.push(res.task);
       await this.localDb.saveLocalTask(res.task, true);
+      this.showToast('✅ Tarea creada correctamente', 'success');
       this.resetForm();
     },
     error: async () => {
       this.tasks.push(tempTask);
       await this.localDb.saveLocalTask(tempTask, false);
-      this.errorMessage = 'Tarea guardada en modo offline. Se sincronizará al conectar a internet.';
+      this.showToast('📱 Tarea guardada offline. Se sincronizará al conectar a internet.', 'warning');
       this.resetForm();
     }
   });

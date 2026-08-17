@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Capacitor } from '@capacitor/core'; // <-- Importar Capacitor
+import { Capacitor } from '@capacitor/core';
 import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite';
 import { Task } from '../domain/task.model';
 
@@ -12,10 +12,7 @@ export class LocalDbService {
   private isReady: boolean = false;
 
   async initializePlugin(): Promise<void> {
-    // Si estamos en navegador web (ng serve), omitimos SQLite
-    if (!Capacitor.isNativePlatform()) {
-      return;
-    }
+    if (!Capacitor.isNativePlatform()) return;
 
     try {
       this.db = await this.sqlite.createConnection('tasks_db', false, 'no-encryption', 1, false);
@@ -33,53 +30,70 @@ export class LocalDbService {
       await this.db.execute(schema);
       this.isReady = true;
     } catch (err) {
-      console.error('Error al inicializar SQLite local:', err);
+      console.error('Error al inicializar SQLite:', err);
     }
   }
 
   async getLocalTasks(): Promise<Task[]> {
-    if (!Capacitor.isNativePlatform()) return [];
+    if (!Capacitor.isNativePlatform()) {
+      const stored = localStorage.getItem('local_tasks');
+      return stored ? JSON.parse(stored) : [];
+    }
     if (!this.isReady) await this.initializePlugin();
     const res = await this.db.query('SELECT * FROM local_tasks');
     return (res.values || []) as Task[];
   }
 
-async saveLocalTask(task: Task, isSynced: boolean = false): Promise<void> {
-  if (!Capacitor.isNativePlatform()) return;
-  if (!this.isReady) await this.initializePlugin();
-  const syncedValue = isSynced ? 1 : 0;
-  const query = `
-    INSERT OR REPLACE INTO local_tasks (id, title, description, status, synced)
-    VALUES (?, ?, ?, ?, ?);
-  `;
-  
-  // Generador de ID seguro para HTTP / Web sin HTTPS
-  const generatedId = task.id || (Date.now().toString(36) + Math.random().toString(36).substring(2));
+  async saveLocalTask(task: Task, isSynced: boolean = false): Promise<void> {
+    // Garantizar que la tarea tenga siempre un ID único asignado
+    const taskId = task.id || (Date.now().toString(36) + Math.random().toString(36).substring(2));
+    const syncedValue = isSynced ? 1 : 0;
+    const taskToSave = { ...task, id: taskId, synced: syncedValue };
 
-  await this.db.run(query, [
-    generatedId, 
-    task.title, 
-    task.description || '', 
-    task.status, 
-    syncedValue
-  ]);
-}
+    if (!Capacitor.isNativePlatform()) {
+      let tasks = await this.getLocalTasks();
+      const index = tasks.findIndex(t => t.id === taskId);
+
+      if (index >= 0) {
+        tasks[index] = taskToSave;
+      } else {
+        tasks.push(taskToSave);
+      }
+
+      localStorage.setItem('local_tasks', JSON.stringify(tasks));
+      return;
+    }
+
+    if (!this.isReady) await this.initializePlugin();
+    const query = `
+      INSERT OR REPLACE INTO local_tasks (id, title, description, status, synced)
+      VALUES (?, ?, ?, ?, ?);
+    `;
+
+    await this.db.run(query, [taskId, task.title, task.description || '', task.status, syncedValue]);
+  }
 
   async getUnsyncedTasks(): Promise<Task[]> {
-    if (!Capacitor.isNativePlatform()) return [];
+    if (!Capacitor.isNativePlatform()) {
+      const stored = localStorage.getItem('local_tasks');
+      if (!stored) return [];
+      const tasks = JSON.parse(stored);
+      return tasks.filter((t: any) => t.synced === 0);
+    }
     if (!this.isReady) await this.initializePlugin();
     const res = await this.db.query('SELECT * FROM local_tasks WHERE synced = 0');
     return (res.values || []) as Task[];
   }
 
-  async markAsSynced(id: string): Promise<void> {
-    if (!Capacitor.isNativePlatform()) return;
-    if (!this.isReady) await this.initializePlugin();
-    await this.db.run('UPDATE local_tasks SET synced = 1 WHERE id = ?', [id]);
-  }
-
   async deleteLocalTask(id: string): Promise<void> {
-    if (!Capacitor.isNativePlatform()) return;
+    if (!id) return;
+
+    if (!Capacitor.isNativePlatform()) {
+      let tasks = await this.getLocalTasks();
+      tasks = tasks.filter(t => t.id !== id);
+      localStorage.setItem('local_tasks', JSON.stringify(tasks));
+      return;
+    }
     if (!this.isReady) await this.initializePlugin();
     await this.db.run('DELETE FROM local_tasks WHERE id = ?', [id]);
   }
