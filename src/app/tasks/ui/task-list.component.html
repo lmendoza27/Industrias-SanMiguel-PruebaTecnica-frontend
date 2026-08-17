@@ -1,0 +1,65 @@
+<div class="tasks-container">
+  <header class="header">
+    <h1>Mis Tareas</h1>
+    <button (click)="logout()" class="btn-logout">Cerrar Sesión</button>
+  </header>
+
+  <div *ngIf="errorMessage" class="error-alert">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Formulario para agregar tarea -->
+  <section class="card-section">
+    <h3>Agregar Nueva Tarea</h3>
+    <form (ngSubmit)="createTask()" class="task-form">
+      <div class="form-group">
+        <input 
+          type="text" 
+          [(ngModel)]="newTask.title" 
+          name="title" 
+          placeholder="Título de la tarea" 
+          required
+        >
+      </div>
+      <div class="form-group">
+        <textarea 
+          [(ngModel)]="newTask.description" 
+          name="description" 
+          placeholder="Descripción opcional"
+        ></textarea>
+      </div>
+      <button type="submit" class="btn-submit">Crear Tarea</button>
+    </form>
+  </section>
+
+  <!-- Lista de tareas -->
+  <section class="card-section">
+    <h3>Lista de Tareas</h3>
+    
+    <div *ngIf="isLoading" class="loading">Cargando tareas...</div>
+    <div *ngIf="!isLoading && tasks.length === 0" class="empty">No tienes tareas pendientes. ¡Crea una!</div>
+
+    <div class="task-grid" *ngIf="!isLoading">
+      <div *ngFor="let task of tasks" class="task-card" [ngClass]="task.status">
+        <div class="task-content">
+          <h4>{{ task.title }}</h4>
+          <p>{{ task.description }}</p>
+        </div>
+
+        <div class="task-actions">
+          <select 
+            [ngModel]="task.status" 
+            (ngModelChange)="updateStatus(task, $event)"
+            class="status-select"
+          >
+            <option value="pending">Pendiente</option>
+            <option value="in_progress">En Progreso</option>
+            <option value="completed">Completado</option>
+          </select>
+
+          <button (click)="deleteTask(task.id)" class="btn-delete">Eliminar</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
